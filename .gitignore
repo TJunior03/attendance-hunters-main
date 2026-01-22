@@ -1,0 +1,22 @@
+# Node
+node_modules
+npm-debug.log
+yarn.lock
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Build output
+build
+dist
+
+# OS
+.DS_Store
+Thumbs.db
+
