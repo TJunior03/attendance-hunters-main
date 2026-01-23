@@ -4,7 +4,15 @@ const path = require("path");
 const fs = require("fs");
 
 const testRoutes = require("./routes/test.routes");
+const authRoutes = require("./routes/auth");
+const studentAuthRoutes = require("./routes/student-auth");
 const usersRoutes = require("./routes/users.routes");
+const classesRoutes = require("./routes/classes");
+const studentsRoutes = require("./routes/students");
+const attendanceRoutes = require("./routes/attendance");
+const qrRoutes = require("./routes/qr");
+const departmentsRoutes = require("./routes/departments");
+const reportsRoutes = require("./routes/reports");
 
 const app = express();
 
@@ -12,18 +20,28 @@ const app = express();
    MIDDLEWARE
 ====================== */
 app.use(cors({
-  origin: "*", // allow frontend from anywhere (safe for now)
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 /* ======================
    API ROUTES
 ====================== */
+app.use("/api/auth", authRoutes);
+app.use("/api/student-auth", studentAuthRoutes);
 app.use("/api", testRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/classes", classesRoutes);
+app.use("/api/students", studentsRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/qr", qrRoutes);
+app.use("/api/departments", departmentsRoutes);
+app.use("/api/reports", reportsRoutes);
 
 /* ======================
    SERVE FRONTEND (OPTIONAL)
@@ -57,8 +75,8 @@ app.use((req, res) => {
 /* ======================
    START SERVER
 ====================== */
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

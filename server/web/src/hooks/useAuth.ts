@@ -50,10 +50,11 @@ export const useAuth = () => {
   }, []);
 
   const login = async (email: string, password: string, role?: 'admin' | 'staff' | 'student') => {
+    const apiBaseUrl = process.env.REACT_APP_API_URL || '/api';
     try {
       if (role === 'student') {
         // Real API call for student login
-        const response = await fetch('http://localhost:5000/api/student-auth/login', {
+        const response = await fetch(`${apiBaseUrl}/student-auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ export const useAuth = () => {
         });
       } else if (role === 'staff') {
         // Real API call for staff login
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch(`${apiBaseUrl}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -125,7 +126,7 @@ export const useAuth = () => {
         });
       } else {
         // Real API call for admin/staff login
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch(`${apiBaseUrl}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

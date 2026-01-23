@@ -9,8 +9,21 @@ interface Environment {
   RETRY_ATTEMPTS: number;
 }
 
+const getApiBaseUrl = (): string => {
+  // Use REACT_APP_API_URL if explicitly set (e.g., /api for same-origin routing)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // Production fallback: assume same origin
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+  // Development fallback
+  return 'http://localhost:5000/api';
+};
+
 export const environment: Environment = {
-  API_BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  API_BASE_URL: getApiBaseUrl(),
   WS_URL: process.env.REACT_APP_WS_URL || 'ws://localhost:5000',
   QR_EXPIRY_TIME: 300000, // 5 minutes
   POLLING_INTERVAL: 2000, // 2 seconds
