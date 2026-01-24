@@ -3,7 +3,7 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const prisma = require('../../db');
+const prisma = require('../../prismaClient');
 const { apiLimiter, errorHandler, notFound } = require('../middlewares');
 
 const app = express();

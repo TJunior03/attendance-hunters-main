@@ -3,6 +3,13 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
+// ✅ VALIDATE DATABASE_URL at startup
+if (!process.env.DATABASE_URL) {
+  console.error('❌ FATAL: DATABASE_URL environment variable is not set');
+  console.error('Set DATABASE_URL in .env or Render environment variables');
+  process.exit(1);
+}
+
 const testRoutes = require("./routes/test.routes");
 const authRoutes = require("./routes/auth");
 const studentAuthRoutes = require("./routes/student-auth");

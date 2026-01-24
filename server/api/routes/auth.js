@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
-const prisma = require('../db');
+const prisma = require('../prismaClient');
 const { validateLogin, validateRegistration, authLimiter } = require('../src/middlewares');
 
 // Configure multer for avatar uploads

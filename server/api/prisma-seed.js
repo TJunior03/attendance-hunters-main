@@ -1,7 +1,7 @@
 require("dotenv").config(); // ⭐ ADD THIS AT THE TOP
 
 const bcrypt = require("bcrypt");
-const prisma = require("./db");
+const prisma = require("./prismaClient");
 
 async function main() {
   console.log("🌱 Seeding database...");
