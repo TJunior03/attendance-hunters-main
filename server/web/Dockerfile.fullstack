@@ -1,0 +1,88 @@
+# Full-stack Dockerfile for Render deployment
+# This file should be at: server/web/Dockerfile.fullstack
+
+# Stage 1: Build React frontend
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend package files
+COPY server/web/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy frontend source
+COPY server/web/src ./src
+COPY server/web/public ./public
+COPY server/web/tsconfig.json ./
+COPY server/web/tailwind.config.js ./
+
+# Build React app
+RUN npm run build
+
+# Stage 2: Backend dependencies
+FROM node:18-alpine AS backend-builder
+
+WORKDIR /app/backend
+
+# Copy backend package files
+COPY server/api/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy backend source
+COPY server/api/prisma ./prisma
+COPY server/api/routes ./routes
+COPY server/api/src ./src
+COPY server/api/utils ./utils
+COPY server/api/*.js ./
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Stage 3: Production image with Nginx + Node backend
+FROM node:18-alpine
+
+# Install nginx
+RUN apk add --no-cache nginx
+
+# Create necessary directories
+RUN mkdir -p /app/backend /usr/share/nginx/html
+
+# Copy Nginx executable
+COPY --from=frontend-builder /usr/local/bin/node /usr/local/bin/node
+
+# Copy built React app
+COPY --from=frontend-builder /app/frontend/build /usr/share/nginx/html
+
+# Copy backend files
+COPY --from=backend-builder /app/backend/node_modules /app/backend/node_modules
+COPY --from=backend-builder /app/backend /app/backend
+
+# Copy Nginx config
+COPY server/web/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Create startup script
+RUN echo '#!/bin/sh\n\
+# Start backend in background\n\
+cd /app/backend\n\
+npm start &\n\
+BACKEND_PID=$!\n\
+\n\
+# Wait for backend to start\n\
+sleep 3\n\
+\n\
+# Start Nginx in foreground\n\
+nginx -g "daemon off;"\n\
+\n\
+# Clean up background process\n\
+kill $BACKEND_PID 2>/dev/null || true\n\
+' > /start.sh && chmod +x /start.sh
+
+# Expose ports
+EXPOSE 80
+
+# Start both services
+CMD ["/start.sh"]

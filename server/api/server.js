@@ -3,12 +3,19 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
+// ✅ LOAD ENVIRONMENT VARIABLES FIRST
+require("dotenv").config();
+
 // ✅ VALIDATE DATABASE_URL at startup
 if (!process.env.DATABASE_URL) {
   console.error('❌ FATAL: DATABASE_URL environment variable is not set');
   console.error('Set DATABASE_URL in .env or Render environment variables');
   process.exit(1);
 }
+
+console.log('✅ Environment loaded');
+console.log('✅ DATABASE_URL is set');
+console.log('✅ PORT:', process.env.PORT || 3000);
 
 const testRoutes = require("./routes/test.routes");
 const authRoutes = require("./routes/auth");
@@ -39,6 +46,16 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 /* ======================
    API ROUTES
 ====================== */
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    environment: process.env.NODE_ENV || 'unknown',
+    port: process.env.PORT || 3000,
+    database: process.env.DATABASE_URL ? '✅ configured' : '❌ missing'
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/student-auth", studentAuthRoutes);
 app.use("/api", testRoutes);
