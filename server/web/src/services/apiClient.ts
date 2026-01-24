@@ -55,15 +55,25 @@ class ApiClient {
           localStorage.removeItem('token');
           window.location.href = '/login';
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText.substring(0, 200)}`);
       }
 
-      const result = await response.json();
-      return {
-        data: result,
-        success: true,
-        message: 'Success'
-      };
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+
+      try {
+        const result = JSON.parse(text);
+        return {
+          data: result,
+          success: true,
+          message: 'Success'
+        };
+      } catch (jsonError) {
+        throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
+      }
     } catch (error) {
       clearTimeout(timeoutId);
       

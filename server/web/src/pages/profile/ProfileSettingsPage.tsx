@@ -63,6 +63,7 @@ export const ProfileSettingsPage: React.FC = () => {
 
   const handleSaveProfile = async () => {
     try {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || '/api';
       const token = localStorage.getItem('auth_token');
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
@@ -71,7 +72,7 @@ export const ProfileSettingsPage: React.FC = () => {
         formDataToSend.append('avatar', avatarFile);
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${apiBaseUrl}/auth/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -111,8 +112,9 @@ export const ProfileSettingsPage: React.FC = () => {
     }
     
     try {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || '/api';
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+      const response = await fetch(`${apiBaseUrl}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
