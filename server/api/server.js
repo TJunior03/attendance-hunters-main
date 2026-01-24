@@ -71,32 +71,39 @@ app.use("/api/reports", reportsRoutes);
 /* ======================
    SERVE REACT FRONTEND (SPA)
 ====================== */
+// Try both possible paths: ../public (Docker) and ../web/build (local dev)
 const publicPath = path.join(__dirname, "../public");
+const webBuildPath = path.join(__dirname, "../web/build");
 
+let reactBuildPath = null;
 if (fs.existsSync(publicPath)) {
-  console.log('✅ React build found, serving from:', publicPath);
-  
-  // Serve static files (JS, CSS, images, etc.)
-  app.use(express.static(publicPath));
+  reactBuildPath = publicPath;
+  console.log('✅ React build found at (Docker path):', publicPath);
+} else if (fs.existsSync(webBuildPath)) {
+  reactBuildPath = webBuildPath;
+  console.log('✅ React build found at (local dev path):', webBuildPath);
+} else {
+  console.warn('⚠️  React build NOT found at:', publicPath, 'or', webBuildPath);
+}
 
-  // SPA fallback: ALL non-API routes return index.html
-  // This allows React Router to handle client-side routing
+if (reactBuildPath) {
+  // Serve static files (JS, CSS, images, etc.)
+  app.use(express.static(reactBuildPath));
+  
+  // 🔴 CRITICAL: SPA FALLBACK MUST BE LAST ROUTE
+  // This catches all non-API routes and serves index.html
+  // React Router then handles the routing on the client side
   app.get('*', (req, res) => {
-    // Make sure API routes don't get caught
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'API route not found' });
-    }
-    // Return index.html for all other routes (SPA routing)
-    res.sendFile(path.join(publicPath, 'index.html'));
+    res.sendFile(path.join(reactBuildPath, 'index.html'));
   });
 } else {
-  console.warn('⚠️  React build not found at:', publicPath);
+  console.warn('⚠️  React build not found - API only mode');
   
-  // Fallback for development
+  // Fallback for development (API only)
   app.get('/', (req, res) => {
     res.json({
       status: 'ok',
-      message: 'Attendance API is running',
+      message: 'Attendance API is running (React frontend not available)',
       endpoints: {
         health: '/api/health',
         auth: '/api/auth/login',
@@ -105,13 +112,6 @@ if (fs.existsSync(publicPath)) {
     });
   });
 }
-
-/* ======================
-   404 HANDLER (FINAL FALLBACK)
-====================== */
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found', path: req.path });
-});
 
 /* ======================
    ERROR HANDLER
