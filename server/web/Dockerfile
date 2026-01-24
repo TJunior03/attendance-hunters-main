@@ -1,55 +1,58 @@
-# Build stage
-FROM node:18-alpine AS builder
+# ============================================
+# Stage 1: Build React Frontend
+# ============================================
+FROM node:18-alpine AS frontend-builder
 
-WORKDIR /app
+WORKDIR /app/web
 
-# Copy all files
-COPY . .
-
-# Build frontend
-WORKDIR /app/server/web
+COPY server/web/package*.json ./
 RUN npm install
+
+COPY server/web/src ./src
+COPY server/web/public ./public
+COPY server/web/tsconfig.json ./
+COPY server/web/tailwind.config.js ./
+COPY server/web/index.html ./
+
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
+# ============================================
+# Stage 2: Build Backend
+# ============================================
+FROM node:18-alpine AS backend-builder
 
-# Install nginx
-RUN apk add --no-cache nginx curl
+WORKDIR /app/api
+
+COPY server/api/package*.json ./
+RUN npm install
+
+COPY server/api/prisma ./prisma
+RUN npx prisma generate
+
+COPY server/api/routes ./routes
+COPY server/api/src ./src
+COPY server/api/utils ./utils
+COPY server/api/*.js ./
+
+# ============================================
+# Stage 3: Production Image
+# ============================================
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy built frontend
-COPY --from=builder /app/server/web/build /usr/share/nginx/html
+# Copy backend node_modules and source
+COPY --from=backend-builder /app/api/node_modules ./node_modules
+COPY --from=backend-builder /app/api/prisma ./prisma
+COPY --from=backend-builder /app/api/routes ./routes
+COPY --from=backend-builder /app/api/src ./src
+COPY --from=backend-builder /app/api/utils ./utils
+COPY --from=backend-builder /app/api/*.js ./
 
-# Copy backend
-COPY server/api /app/backend
+# Copy React build to public folder (Express will serve it)
+COPY --from=frontend-builder /app/web/build ./public
 
-# Copy nginx configuration
-COPY server/web/nginx.conf /etc/nginx/conf.d/default.conf
+ENV NODE_ENV=production
+EXPOSE 3000
 
-# Install backend dependencies
-WORKDIR /app/backend
-RUN npm install
-
-# Create startup script that runs both Nginx and Node
-RUN echo '#!/bin/sh\n\
-cd /app/backend\n\
-\n\
-# Start Express backend on port 3000\n\
-npm start &\n\
-BACKEND_PID=$!\n\
-\n\
-# Wait for backend to start\n\
-sleep 2\n\
-\n\
-# Start Nginx on port 80\n\
-cd /\n\
-nginx -g "daemon off;"\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
-
-# Expose ports
-EXPOSE 80 3000
-
-# Start both services
-CMD ["/entrypoint.sh"]
+CMD ["npm", "start"]
