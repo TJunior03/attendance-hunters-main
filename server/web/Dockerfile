@@ -14,7 +14,12 @@ COPY server/web/tsconfig.json ./
 COPY server/web/tailwind.config.js ./
 COPY server/web/index.html ./
 
-RUN npm run build
+# Build React app
+RUN echo "🔨 Building React frontend..." && \
+    npm run build && \
+    echo "✅ React build complete" && \
+    ls -la /app/web/ && \
+    ls -la /app/web/build 2>/dev/null || echo "⚠️ Build directory not found"
 
 # ============================================
 # Stage 2: Build Backend
@@ -51,6 +56,11 @@ COPY --from=backend-builder /app/api/*.js ./
 
 # Copy React build to public folder (Express will serve it)
 COPY --from=frontend-builder /app/web/build ./public
+
+# Verify React build was copied
+RUN echo "📁 Verifying build files..." && \
+    ls -la /app/ && \
+    ls -la /app/public 2>/dev/null || echo "⚠️ Public folder not found"
 
 ENV NODE_ENV=production
 EXPOSE 3000

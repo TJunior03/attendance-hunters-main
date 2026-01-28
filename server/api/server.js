@@ -79,25 +79,40 @@ let reactBuildPath = null;
 if (fs.existsSync(publicPath)) {
   reactBuildPath = publicPath;
   console.log('✅ React build found at (Docker path):', publicPath);
+  console.log('📁 Contents:', fs.readdirSync(publicPath));
 } else if (fs.existsSync(webBuildPath)) {
   reactBuildPath = webBuildPath;
   console.log('✅ React build found at (local dev path):', webBuildPath);
+  console.log('📁 Contents:', fs.readdirSync(webBuildPath));
 } else {
-  console.warn('⚠️  React build NOT found at:', publicPath, 'or', webBuildPath);
+  console.error('❌ React build NOT found at either location:');
+  console.error('   - Docker: ' + publicPath);
+  console.error('   - Local:  ' + webBuildPath);
+  console.error('📁 Current __dirname:', __dirname);
+  console.error('📁 Parent directory contents:', fs.readdirSync(path.join(__dirname, '..')));
 }
 
 if (reactBuildPath) {
   // Serve static files (JS, CSS, images, etc.)
   app.use(express.static(reactBuildPath));
+  console.log('✅ Static file serving enabled from:', reactBuildPath);
   
   // 🔴 CRITICAL: SPA FALLBACK MUST BE LAST ROUTE
   // This catches all non-API routes and serves index.html
   // React Router then handles the routing on the client side
   app.get('*', (req, res) => {
-    res.sendFile(path.join(reactBuildPath, 'index.html'));
+    const indexPath = path.join(reactBuildPath, 'index.html');
+    console.log(`📄 SPA Fallback: Serving ${req.path} → ${indexPath}`);
+    res.sendFile(indexPath);
   });
 } else {
-  console.warn('⚠️  React build not found - API only mode');
+  console.error('⚠️  React build not found - Frontend will NOT be available!');
+  console.error('');
+  console.error('🔧 TROUBLESHOOTING:');
+  console.error('   1. Check if React build succeeded in Docker build logs');
+  console.error('   2. Verify "COPY --from=frontend-builder /app/web/build ./public" in Dockerfile');
+  console.error('   3. Ensure "npm run build" in server/web works locally');
+  console.error('');
   
   // Fallback for development (API only)
   app.get('/', (req, res) => {
