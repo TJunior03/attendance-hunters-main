@@ -53,14 +53,21 @@ COPY --from=backend-builder /app/api/routes ./routes
 COPY --from=backend-builder /app/api/src ./src
 COPY --from=backend-builder /app/api/utils ./utils
 COPY --from=backend-builder /app/api/*.js ./
+# Ensure package.json is present so `npm start` works
+COPY --from=backend-builder /app/api/package*.json ./
 
-# Copy React build to public folder (Express will serve it)
+# Copy React build to multiple common locations so server can find it
+# (covers different Docker layouts and local dev locations)
 COPY --from=frontend-builder /app/web/build ./public
+COPY --from=frontend-builder /app/web/build ./server/public
+COPY --from=frontend-builder /app/web/build ./web/build
 
 # Verify React build was copied
 RUN echo "📁 Verifying build files..." && \
     ls -la /app/ && \
-    ls -la /app/public 2>/dev/null || echo "⚠️ Public folder not found"
+    ls -la /app/public 2>/dev/null || echo "⚠️ Public folder not found" && \
+    ls -la /app/server/public 2>/dev/null || echo "⚠️ server/public folder not found" && \
+    ls -la /app/web/build 2>/dev/null || echo "⚠️ /app/web/build not found"
 
 ENV NODE_ENV=production
 EXPOSE 3000

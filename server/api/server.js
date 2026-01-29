@@ -71,39 +71,47 @@ app.use("/api/reports", reportsRoutes);
 /* ======================
    SERVE REACT FRONTEND (SPA)
 ====================== */
-// Try both possible paths: ../public (Docker) and ../web/build (local dev)
-const publicPath = path.join(__dirname, "../public");
-const webBuildPath = path.join(__dirname, "../web/build");
+// Try several possible paths for the React build to be compatible
+// with different Docker copy layouts and local dev setups.
+const candidatePaths = [
+  path.resolve(__dirname, 'public'),            // /app/public (if server.js in /app)
+  path.resolve(__dirname, '../public'),         // ../public (if server/api/server.js is used)
+  path.resolve(__dirname, '../../public'),      // ../../public
+  path.resolve(__dirname, 'server/public'),     // /app/server/public
+  path.resolve(__dirname, 'web/build'),         // /app/web/build
+  path.resolve(__dirname, '../web/build'),      // ../web/build (local)
+  path.resolve(__dirname, '../../web/build'),   // ../../web/build
+  '/app/public',                                 // absolute common path
+  '/app/server/public',                          // alternate absolute
+  '/app/web/build'                               // alternate absolute
+];
 
 let reactBuildPath = null;
-if (fs.existsSync(publicPath)) {
-  reactBuildPath = publicPath;
-  console.log('✅ React build found at (Docker path):', publicPath);
-  console.log('📁 Contents:', fs.readdirSync(publicPath));
-} else if (fs.existsSync(webBuildPath)) {
-  reactBuildPath = webBuildPath;
-  console.log('✅ React build found at (local dev path):', webBuildPath);
-  console.log('📁 Contents:', fs.readdirSync(webBuildPath));
-} else {
-  console.error('❌ React build NOT found at either location:');
-  console.error('   - Docker: ' + publicPath);
-  console.error('   - Local:  ' + webBuildPath);
-  console.error('📁 Current __dirname:', __dirname);
-  console.error('📁 Parent directory contents:', fs.readdirSync(path.join(__dirname, '..')));
+for (const p of candidatePaths) {
+  try {
+    if (fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+      reactBuildPath = p;
+      console.log('✅ React build found at:', p);
+      console.log('📁 Contents:', fs.readdirSync(p));
+      break;
+    }
+  } catch (err) {
+    // ignore and continue
+  }
 }
 
 if (reactBuildPath) {
   // Serve static files (JS, CSS, images, etc.)
   app.use(express.static(reactBuildPath));
   console.log('✅ Static file serving enabled from:', reactBuildPath);
-  
+
   // 🔴 CRITICAL: SPA FALLBACK MUST BE LAST ROUTE
-  // This catches all non-API routes and serves index.html
-  // React Router then handles the routing on the client side
-  app.get('*', (req, res) => {
+  // Exclude API routes from falling back to index.html
+  app.get('*', (req, res, next) => {
+    if (req.path && req.path.startsWith('/api')) return next();
     const indexPath = path.join(reactBuildPath, 'index.html');
     console.log(`📄 SPA Fallback: Serving ${req.path} → ${indexPath}`);
-    res.sendFile(indexPath);
+    return res.sendFile(indexPath);
   });
 } else {
   console.error('⚠️  React build not found - Frontend will NOT be available!');
